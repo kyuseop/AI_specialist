@@ -1,0 +1,5 @@
+LANGUAGE
+\\swschoolavdazfiles002.file.core.windows.net\aias-language
+
+VISION
+\\swschoolavdazfiles002.file.core.windows.net\aias-vision
