@@ -1,0 +1,17 @@
+{
+	"folders": [
+		{
+			"name": "llm_hands_on",
+			"path": "."
+		},
+		{
+			"name": "llm_lecture",
+			"path": "../llm_lecture"
+		},
+		{
+			"name": "llm_extending",
+			"path": "../llm_extending"
+		}
+	],
+	"settings": {}
+}
