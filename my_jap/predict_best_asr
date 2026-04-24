@@ -1,0 +1,32 @@
+import torch
+from transformers import AutoTokenizer, AutoModelForSequenceClassification
+
+#model_name = "prajjwal1/bert-tiny"
+model_name = "monologg/koelectra-small-v3-discriminator"
+
+tokenizer = AutoTokenizer.from_pretrained(model_name)
+model = AutoModelForSequenceClassification.from_pretrained(model_name, num_labels=2, 
+    use_safetensors=True)
+
+save_path = "./my_asr_classifier"
+tokenizer.save_pretrained(save_path)
+model.save_pretrained(save_path)
+
+def predict_best_asr (text_a, text_b, context=""):
+    inputs = tokenizer ( text_a,
+                        f"{text_b}, [Context: {context}]",
+                        return_tensors="pt",
+                        truncation=True,
+                        padding=True,
+                        max_length=128)
+
+    model.eval()
+    with torch.no_grad():
+        outputs=model(**inputs)
+        logits = outputs.logits
+
+        prediction = torch.argmax (logits, dim=-1).item()
+
+        return text_a if prediction == 0 else text_b
+
+print (predict_best_asr ("순식간 15분 뒤에 5분 꺼야 한다고 나한테 리마인드 좀 해줄래", "3시간 15분 뒤에 오븐 꺼야 한다고 나한테 리마인드 좀 해줄래")) 
