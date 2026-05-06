@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>Inverted Index: DocID Order vs PageRank Order</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    font-family: -apple-system, 'Segoe UI', sans-serif;
+    background: #0f1419; color: #e6e6e6; margin: 0; padding: 20px;
+  }
+  h1 { text-align: center; color: #7dd3fc; margin: 0 0 6px; }
+  .subtitle { text-align: center; color: #94a3b8; margin-bottom: 18px; }
+  .controls { text-align: center; margin-bottom: 18px; }
+  button {
+    background: #1e40af; color: #fff; border: none;
+    padding: 9px 18px; margin: 0 4px; border-radius: 6px;
+    cursor: pointer; font-size: 14px; font-weight: 600;
+  }
+  button:hover { background: #2563eb; }
+  .container {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 20px;
+    max-width: 1700px; margin: 0 auto;
+  }
+  .panel {
+    background: #1a202c; border-radius: 10px; padding: 18px;
+    border: 1px solid #2d3748;
+  }
+  .panel h2 { margin-top: 0; color: #fbbf24; font-size: 17px; }
+  .note { color: #94a3b8; font-size: 13px; margin-bottom: 10px; line-height:1.5; }
+  .query { color: #10b981; font-weight: bold; }
+  .list-row {
+    display: flex; align-items: center; margin: 10px 0;
+    gap: 4px; flex-wrap: wrap;
+  }
+  .term-label {
+    min-width: 80px; font-weight: bold; color: #f472b6;
+    font-family: monospace; font-size: 13px;
+  }
+  .posting {
+    display: inline-flex; flex-direction: column; align-items: center;
+    background: #2d3748; padding: 5px 7px; border-radius: 5px;
+    font-family: monospace; font-size: 11px; min-width: 60px;
+    border: 2px solid transparent; transition: all 0.25s;
+  }
+  .posting .did { color: #93c5fd; font-weight: bold; font-size: 13px; }
+  .posting .meta { color: #fbbf24; font-size: 10px; }
+  .posting.ptr { border-color: #10b981; background: #064e3b; transform: translateY(-2px); }
+  .posting.done { opacity: 0.28; }
+  .posting.match { border-color: #f59e0b; background: #78350f; }
+  .posting.skipped { opacity: 0.12; text-decoration: line-through; }
+  .pseudo {
+    background: #0d1117; padding: 11px; border-radius: 6px;
+    font-family: monospace; font-size: 12px; line-height: 1.55;
+    margin-top: 12px; border-left: 3px solid #7dd3fc;
+    white-space: pre-wrap;
+  }
+  .status {
+    background: #0d1117; padding: 10px; border-radius: 6px;
+    margin-top: 10px; font-family: monospace; font-size: 12.5px;
+    min-height: 60px; line-height: 1.5;
+  }
+  .bounds {
+    background: #0d1117; padding: 10px; border-radius: 6px;
+    margin-top: 10px; font-family: monospace; font-size: 13px;
+  }
+  .lb { color: #34d399; font-weight:bold; }
+  .ub { color: #f87171; font-weight:bold; }
+  .topk { display: flex; gap: 6px; margin-top: 6px; flex-wrap: wrap; }
+  .topk-item {
+    background: #7c2d12; padding: 4px 8px; border-radius: 4px;
+    font-family: monospace; font-size: 12px;
+  }
+  .hl { background: #3730a3; padding: 1px 3px; border-radius: 2px; }
+  .counter {
+    display:inline-block; background:#0d1117; color:#fbbf24;
+    padding:3px 10px; border-radius:4px; font-family:monospace;
+    font-size:12px; margin-left:8px;
+  }
+</style>
+</head>
+<body>
+  <h1>Inverted Index Ranking: One-Pass Scan 비교</h1>
+  <div class="subtitle">
+    Query: <span class="query">{"machine" AND "learning"}</span> ·
+    Top-K = 2 · 좌: ranking = <b style="color:#a5b4fc;">docID ↑</b> / 우: ranking = <b style="color:#a5b4fc;">PageRank ↓</b>
+  </div>
+
+  <div class="controls">
+    <button id="stepBtn">▶ Step</button>
+    <button id="playBtn">⏵ Auto Play</button>
+    <button id="resetBtn">↺ Reset</button>
+    <span style="color:#94a3b8; margin-left:16px;">Speed:
+      <input type="range" id="speed" min="200" max="2000" value="900" style="vertical-align:middle;">
+    </span>
+  </div>
+
+  <div class="container">
+
+    <!-- LEFT: DocID order -->
+    <div class="panel">
+      <h2>① DocID Order — merge, stop after K hits</h2>
+      <div class="note">
+        Ranking이 <b>docID 오름차순</b>이고 posting도 docID 오름차순 →
+        intersection이 튀어나오는 순서가 <b>곧 top-K 순서</b>.
+        K개 찾으면 즉시 종료, 추가 정렬 불필요.
+      </div>
+      <div id="listsA"></div>
+      <div class="status" id="statusA">대기 중...</div>
+      <div style="margin-top:10px; color:#94a3b8; font-size:12px;">Top-K (emit 순서 = rank):</div>
+      <div class="topk" id="foundA"></div>
+      <div style="margin-top:8px;">Scan cost: <span class="counter" id="costA">0 comparisons</span></div>
+      <div class="pseudo">
+<span class="hl">docID merge for AND, stop@K</span>
+i = j = 0;  topk = []
+while i &lt; |L₁| and j &lt; |L₂|:
+  if L₁[i].d == L₂[j].d:
+     topk.push(d)                  // docID 순서로 그대로 top-K
+     <span style="color:#f87171;">if |topk| == K: break</span>
+     i++; j++
+  elif L₁[i].d &lt; L₂[j].d: i++
+  else:                    j++
+→ <b>정렬 없음</b>. K hit 후 즉시 종료.</div>
+    </div>
+
+    <!-- RIGHT: PageRank order -->
+    <div class="panel">
+      <h2>② PageRank Order — lower/upper bound early stop</h2>
+      <div class="note">
+        두 posting list 모두 <b>PR 내림차순</b>으로 정렬.
+        merge하며 동일 docID를 만나면 intersection hit → top-K heap에 추가.
+        PR은 단조감소하므로 <b>아직 못 본 문서의 PR 상한</b>을 커서 위치에서 즉시 계산 가능.
+      </div>
+      <div style="background:#0d1117; padding:8px; border-radius:4px; margin:6px 0; font-family:monospace; font-size:12px; color:#a5b4fc;">
+        UB = min(PR<sub>cursor₁</sub>, PR<sub>cursor₂</sub>)   <span style="color:#94a3b8;">// intersection은 양쪽에 있어야 하므로 min</span><br>
+        LB = top-K heap의 k-th PR
+      </div>
+      <div style="background:#0d1117; padding:8px; border-radius:4px; margin:6px 0; font-family:monospace; font-size:12px; color:#fbbf24;">
+        LB ≥ UB  ⇒  이후 나올 어떤 intersection도 LB보다 작음 → STOP
+      </div>
+      <div id="listsB"></div>
+      <div class="bounds" id="boundsB"></div>
+      <div class="status" id="statusB">대기 중...</div>
+      <div style="margin-top:10px; color:#94a3b8; font-size:12px;">Top-K heap:</div>
+      <div class="topk" id="topkB"></div>
+      <div style="margin-top:8px;">Scan cost: <span class="counter" id="costB">0 postings</span></div>
+      <div class="pseudo">
+<span class="hl">PR-ordered merge with bound pruning</span>
+i = j = 0
+while i &lt; |L₁| and j &lt; |L₂|:
+  if L₁[i].d == L₂[j].d:
+     heap.push((PR(d), d)); trim K;  i++; j++
+  elif PR(L₁[i]) &gt; PR(L₂[j]): i++   // 더 큰 PR 쪽 전진
+  else:                        j++
+  <span style="color:#f87171;">UB = min(PR(L₁[i]), PR(L₂[j]))</span>
+  <span style="color:#34d399;">LB = heap.kth()</span>
+  <span style="color:#f87171;">if |heap|==K and LB ≥ UB: break</span></div>
+    </div>
+  </div>
+
+<script>
+// ---- corpus ----
+// doc → PageRank, contains machine?, contains learning?
+const DOCS = {
+  1:{pr:0.95, m:1, l:0},
+  2:{pr:0.88, m:1, l:1},  // intersection, high PR
+  3:{pr:0.80, m:0, l:1},
+  4:{pr:0.72, m:1, l:1},  // intersection, high PR
+  5:{pr:0.65, m:0, l:1},
+  6:{pr:0.55, m:1, l:1},  // intersection (3rd)
+  7:{pr:0.40, m:1, l:0},
+  8:{pr:0.30, m:1, l:1},  // intersection (4th)
+  9:{pr:0.20, m:0, l:1},
+ 10:{pr:0.10, m:1, l:1},  // intersection (5th)
+};
+const K = 2;
+
+function makeList(term, orderBy) {
+  const key = term;
+  const arr = [];
+  for (const d in DOCS) if (DOCS[d][key]) arr.push({d:+d, pr:DOCS[d].pr});
+  if (orderBy === "did") arr.sort((a,b)=>a.d-b.d);
+  else if (orderBy === "pr") arr.sort((a,b)=>b.pr-a.pr);
+  return arr;
+}
+const listsA = { machine: makeList("m","did"), learning: makeList("l","did") };
+const listsB = { machine: makeList("m","pr"),  learning: makeList("l","pr") };
+
+// ---- rendering ----
+function renderLists(containerId, lists, ptrs, marks={}) {
+  const el = document.getElementById(containerId);
+  el.innerHTML = "";
+  for (const term in lists) {
+    const row = document.createElement("div");
+    row.className = "list-row";
+    const lbl = document.createElement("div");
+    lbl.className = "term-label"; lbl.textContent = term+":";
+    row.appendChild(lbl);
+    lists[term].forEach((p,i)=>{
+      const pd = document.createElement("div");
+      pd.className = "posting";
+      if (i < ptrs[term]) pd.classList.add("done");
+      if (i === ptrs[term]) pd.classList.add("ptr");
+      if (marks.match && marks.match[term] === i) pd.classList.add("match");
+      if (marks.skipped && i >= ptrs[term]) pd.classList.add("skipped");
+      pd.innerHTML = `<span class="did">d${p.d}</span><span class="meta">PR=${p.pr.toFixed(2)}</span>`;
+      row.appendChild(pd);
+    });
+    el.appendChild(row);
+  }
+}
+function renderTopK(id, heap) {
+  const el = document.getElementById(id); el.innerHTML = "";
+  [...heap].sort((a,b)=>b.s-a.s).forEach(h=>{
+    const d = document.createElement("div");
+    d.className = "topk-item";
+    d.textContent = `d${h.d}: PR=${h.s.toFixed(2)}`;
+    el.appendChild(d);
+  });
+}
+
+// ---- Simulation A: docID merge, stop after K hits ----
+function buildStepsA() {
+  const steps = [];
+  const ptrs = {machine:0, learning:0};
+  const found = []; // {d}
+  const L1 = listsA.machine, L2 = listsA.learning;
+  let cost = 0;
+  steps.push({ptrs:{...ptrs}, found:[...found], cost, msg:"초기: 두 pointer 모두 head."});
+  while (ptrs.machine < L1.length && ptrs.learning < L2.length) {
+    const a = L1[ptrs.machine], b = L2[ptrs.learning];
+    let msg, match = {};
+    cost++;
+    if (a.d === b.d) {
+      found.push({d:a.d, s:a.d});
+      match = {machine: ptrs.machine, learning: ptrs.learning};
+      msg = `d${a.d} 일치 → top-K에 emit (rank = docID ↑). pointer++`;
+      ptrs.machine++; ptrs.learning++;
+      steps.push({ptrs:{...ptrs}, found:[...found], cost, msg, match});
+      if (found.length >= K) {
+        steps.push({ptrs:{...ptrs}, found:[...found], cost, stopped:true,
+          msg:`🛑 K=${K}개 도달 → 즉시 종료. 정렬 불필요 (emit 순서 = rank).`});
+        return steps;
+      }
+      continue;
+    } else if (a.d < b.d) {
+      match = {machine: ptrs.machine};
+      msg = `d${a.d} &lt; d${b.d} → machine++ (miss)`;
+      ptrs.machine++;
+    } else {
+      match = {learning: ptrs.learning};
+      msg = `d${a.d} &gt; d${b.d} → learning++ (miss)`;
+      ptrs.learning++;
+    }
+    steps.push({ptrs:{...ptrs}, found:[...found], cost, msg, match});
+  }
+  steps.push({ptrs:{...ptrs}, found:[...found], cost,
+    msg:`✅ 리스트 소진. intersection ${found.length}개.`});
+  return steps;
+}
+
+// ---- Simulation B: PR-ordered merge with LB/UB early stop ----
+function buildStepsB() {
+  const steps = [];
+  const ptrs = {machine:0, learning:0};
+  const heap = [];
+  const L1 = listsB.machine, L2 = listsB.learning;
+  let cost = 0;
+
+  function ub() {
+    if (ptrs.machine >= L1.length || ptrs.learning >= L2.length) return 0;
+    return Math.min(L1[ptrs.machine].pr, L2[ptrs.learning].pr);
+  }
+  function lb() { return heap.length < K ? -Infinity : heap[heap.length-1].s; }
+  function pushHeap(d, s) {
+    heap.push({d,s}); heap.sort((a,b)=>b.s-a.s);
+    while (heap.length > K) heap.pop();
+  }
+
+  steps.push({ptrs:{...ptrs}, heap:[...heap], lb:lb(), ub:ub(), cost,
+              msg:"초기: 두 list의 head (PR 가장 큰 문서들)."});
+
+  while (ptrs.machine < L1.length && ptrs.learning < L2.length) {
+    const a = L1[ptrs.machine], b = L2[ptrs.learning];
+    let msg, match = {};
+    cost++;
+    if (a.d === b.d) {
+      pushHeap(a.d, a.pr);
+      match = {machine: ptrs.machine, learning: ptrs.learning};
+      msg = `d${a.d} 일치 (intersection) → heap에 PR=${a.pr.toFixed(2)} 추가.`;
+      ptrs.machine++; ptrs.learning++;
+    } else if (a.pr > b.pr) {
+      match = {machine: ptrs.machine};
+      msg = `PR(d${a.d})=${a.pr.toFixed(2)} &gt; PR(d${b.d})=${b.pr.toFixed(2)} → machine++ (더 큰 PR 쪽 전진)`;
+      ptrs.machine++;
+    } else {
+      match = {learning: ptrs.learning};
+      msg = `PR(d${a.d})=${a.pr.toFixed(2)} ≤ PR(d${b.d})=${b.pr.toFixed(2)} → learning++`;
+      ptrs.learning++;
+    }
+    const curLB = lb(), curUB = ub();
+    steps.push({ptrs:{...ptrs}, heap:[...heap], lb:curLB, ub:curUB, cost, msg, match});
+
+    if (heap.length >= K && curLB >= curUB) {
+      steps.push({ptrs:{...ptrs}, heap:[...heap], lb:curLB, ub:curUB, cost, stopped:true,
+        msg:`🛑 Early stop: LB=${curLB.toFixed(2)} ≥ UB=${curUB.toFixed(2)}. 남은 intersection의 PR은 모두 UB 이하 → top-${K} 확정.`});
+      return steps;
+    }
+  }
+  steps.push({ptrs:{...ptrs}, heap:[...heap], lb:lb(), ub:ub(), cost,
+    msg:"✅ 한쪽 list 소진."});
+  return steps;
+}
+
+// ---- driver ----
+let stepsA, stepsB, iA=0, iB=0, timer=null;
+function reset() { stepsA = buildStepsA(); stepsB = buildStepsB(); iA = 0; iB = 0; draw(); }
+function draw() {
+  const sA = stepsA[iA], sB = stepsB[iB];
+  renderLists("listsA", listsA, sA.ptrs, {match:sA.match, skipped:sA.stopped});
+  document.getElementById("statusA").textContent = sA.msg;
+  document.getElementById("costA").textContent = sA.cost + " comparisons";
+  const fA = document.getElementById("foundA"); fA.innerHTML = "";
+  sA.found.forEach((h,i)=>{
+    const el = document.createElement("div");
+    el.className = "topk-item";
+    el.style.background = "#166534";
+    el.textContent = `#${i+1} d${h.d}`;
+    fA.appendChild(el);
+  });
+
+  renderLists("listsB", listsB, sB.ptrs, {match:sB.match, skipped: sB.stopped});
+  document.getElementById("statusB").textContent = sB.msg;
+  document.getElementById("costB").textContent = sB.cost + " comparisons";
+  renderTopK("topkB", sB.heap);
+  const lbStr = sB.lb === -Infinity ? "-∞" : sB.lb.toFixed(2);
+  const ubStr = sB.ub.toFixed(2);
+  const cmp = sB.lb >= sB.ub && sB.lb !== -Infinity ? "≥" : "&lt;";
+  document.getElementById("boundsB").innerHTML =
+    `<span class="lb">LB (k-th in heap) = ${lbStr}</span> &nbsp;&nbsp; <span class="ub">UB = min(cursor PRs) = ${ubStr}</span> &nbsp;→&nbsp; LB ${cmp} UB`;
+}
+function step() {
+  let changed = false;
+  if (iA < stepsA.length-1) { iA++; changed = true; }
+  if (iB < stepsB.length-1) { iB++; changed = true; }
+  draw(); return changed;
+}
+document.getElementById("stepBtn").onclick = step;
+document.getElementById("resetBtn").onclick = () => { if(timer){clearInterval(timer); timer=null;} reset(); document.getElementById("playBtn").textContent="⏵ Auto Play"; };
+document.getElementById("playBtn").onclick = () => {
+  if (timer) { clearInterval(timer); timer=null; document.getElementById("playBtn").textContent="⏵ Auto Play"; return; }
+  document.getElementById("playBtn").textContent="⏸ Pause";
+  const speed = +document.getElementById("speed").value;
+  timer = setInterval(()=>{ if(!step()){ clearInterval(timer); timer=null; document.getElementById("playBtn").textContent="⏵ Auto Play"; } }, speed);
+};
+reset();
+</script>
+</body>
+</html>
