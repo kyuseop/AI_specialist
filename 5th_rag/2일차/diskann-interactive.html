@@ -1,0 +1,395 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>DiskANN Interactive</title><style>*{margin:0;padding:0;box-sizing:border-box}:root{--bg: #0a0a1a;--bg-panel: rgba(15, 23, 42, .95);--bg-card: rgba(30, 41, 59, .6);--text: #e2e8f0;--text-dim: #94a3b8;--text-bright: #f8fafc;--accent: #818cf8;--accent-green: #34d399;--accent-red: #f87171;--accent-yellow: #fbbf24;--border: rgba(100, 116, 139, .25);--radius: 10px}html,body{height:100%;font-family:Pretendard,-apple-system,Segoe UI,system-ui,sans-serif;background:var(--bg);color:var(--text);overflow:hidden;-webkit-user-select:none;user-select:none}#app{display:flex;flex-direction:column;height:100vh}#tabs{display:flex;gap:2px;padding:6px 12px;background:#0f172acc;border-bottom:1px solid var(--border);flex-shrink:0}.tab{padding:10px 20px;font-size:13px;font-weight:600;color:var(--text-dim);cursor:pointer;border-radius:8px 8px 0 0;border:1px solid transparent;border-bottom:none;transition:all .2s;white-space:nowrap}.tab:hover{color:var(--text);background:var(--bg-card)}.tab.active{color:var(--accent);background:var(--bg);border-color:var(--border)}#content{display:flex;flex:1;min-height:0}#graph-area{flex:1;position:relative;min-width:0}#graph-svg{width:100%;height:100%;display:block}#panel{width:420px;flex-shrink:0;padding:20px;border-left:1px solid var(--border);background:var(--bg-panel);overflow-y:auto;display:flex;flex-direction:column;gap:16px}#controls{padding:10px 20px;background:#0f172acc;border-top:1px solid var(--border);display:flex;align-items:center;gap:12px;flex-shrink:0;min-height:52px}.panel-section{background:var(--bg-card);border-radius:var(--radius);border:1px solid var(--border);padding:16px 20px}.panel-title{font-size:15px;font-weight:700;color:var(--accent);margin-bottom:10px}.panel-text{font-size:13px;line-height:1.8;color:var(--text)}.panel-text .dim{color:var(--text-dim)}.panel-text .green{color:var(--accent-green);font-weight:600}.panel-text .red{color:var(--accent-red);font-weight:600}.panel-text .yellow{color:var(--accent-yellow);font-weight:600}.panel-text .accent{color:var(--accent)}.formula{font-family:Georgia,Times New Roman,serif;font-style:italic;color:var(--text-bright);font-size:14px;background:#0000004d;padding:8px 14px;border-radius:6px;margin:8px 0;line-height:1.7}.btn{padding:8px 20px;font-size:13px;font-weight:600;border:1px solid var(--border);border-radius:8px;cursor:pointer;transition:all .15s;font-family:inherit;color:var(--text);background:var(--bg-card)}.btn:hover{background:#323c50cc;border-color:var(--accent)}.btn:active{transform:scale(.97)}.btn-primary{background:var(--accent);color:#0a0a1a;border-color:var(--accent)}.btn-primary:hover{background:#6366f1}.btn:disabled{opacity:.4;cursor:not-allowed}.btn:disabled:hover{background:var(--bg-card);border-color:var(--border)}.step-list{display:flex;flex-direction:column;gap:4px}.step-item{display:flex;align-items:center;gap:8px;padding:6px 10px;border-radius:6px;font-size:13px;font-family:SF Mono,Fira Code,monospace;transition:background .2s}.step-item.active{background:#818cf81f}.step-item.done{color:var(--text-dim)}.step-item.pruned{color:var(--accent-red);text-decoration:line-through}.step-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}.dist-badge{background:#000000b3;border:1px solid var(--border);border-radius:4px;padding:2px 6px;font-size:11px;font-family:SF Mono,monospace;pointer-events:none}.status-text{font-size:12px;color:var(--text-dim)}.status-text strong{color:var(--text)}.graph-point{cursor:pointer;transition:r .2s}.graph-point:hover{r:14}.point-label{font-family:system-ui,sans-serif;font-size:14px;font-weight:700;fill:#fff;pointer-events:none;text-anchor:middle}.edge-line{stroke-linecap:round;transition:stroke .3s,stroke-width .3s}.grid-line{stroke:#33415526;stroke-width:.5}.distance-line{stroke-dasharray:6 4;stroke-width:1.5;pointer-events:none}.draggable{cursor:grab}.draggable:active{cursor:grabbing}@keyframes pulse{0%,to{r:12;opacity:.15}50%{r:22;opacity:.08}}.pulse-ring{animation:pulse 2s ease-in-out infinite}@keyframes fadeIn{0%{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}.fade-in{animation:fadeIn .3s ease-out}.hop-trail{stroke-width:3;stroke-linecap:round;fill:none}
+</style></head><body><div id="app"><nav id="tabs"></nav><main id="content"><div id="graph-area"><svg id="graph-svg"></svg></div><aside id="panel"></aside></main><footer id="controls"></footer></div><script>(function(){const e=document.createElement("link").relList;if(e&&e.supports&&e.supports("modulepreload"))return;for(const a of document.querySelectorAll('link[rel="modulepreload"]'))u(a);new MutationObserver(a=>{for(const i of a)if(i.type==="childList")for(const n of i.addedNodes)n.tagName==="LINK"&&n.rel==="modulepreload"&&u(n)}).observe(document,{childList:!0,subtree:!0});function o(a){const i={};return a.integrity&&(i.integrity=a.integrity),a.referrerPolicy&&(i.referrerPolicy=a.referrerPolicy),a.crossOrigin==="use-credentials"?i.credentials="include":a.crossOrigin==="anonymous"?i.credentials="omit":i.credentials="same-origin",i}function u(a){if(a.ep)return;a.ep=!0;const i=o(a);fetch(a.href,i)}})();const k=[{id:1,label:"A",x:.12,y:.14,color:"#3b82f6"},{id:2,label:"B",x:.04,y:.38,color:"#8b5cf6"},{id:3,label:"C",x:.13,y:.5,color:"#22c55e"},{id:4,label:"D",x:.12,y:.68,color:"#14b8a6"},{id:5,label:"E",x:.22,y:.16,color:"#f97316"},{id:6,label:"F",x:.33,y:.07,color:"#ef4444"},{id:7,label:"G",x:.27,y:.34,color:"#06b6d4"},{id:8,label:"H",x:.28,y:.8,color:"#f59e0b"},{id:9,label:"I",x:.42,y:.46,color:"#ec4899"},{id:10,label:"J",x:.38,y:.16,color:"#84cc16"},{id:11,label:"K",x:.64,y:.26,color:"#6366f1"},{id:12,label:"L",x:.53,y:.54,color:"#a855f7"},{id:13,label:"M",x:.63,y:.72,color:"#f43f5e"},{id:14,label:"N",x:.48,y:.78,color:"#0ea5e9"}],at={id:0,label:"q",x:.17,y:.55,color:"#fbbf24"};function S(s,e){return Math.sqrt((s.x-e.x)**2+(s.y-e.y)**2)}const m=(s,e=k,o)=>s===0?at:e.find(u=>u.id===s),U=2,St=4;function Nt(s,e,o){const u=e.map(d=>({id:d.id,d:S(s,d)})).sort((d,r)=>d.d-r.d),a=new Set(u.map(d=>d.id)),i=[],n=[];for(const d of u){if(!a.has(d.id))continue;a.delete(d.id),i.push(d.id),n.push({type:"select",pointId:d.id,distToCenter:d.d});const r=[];for(const b of a){const g=e.find(M=>M.id===b),c=e.find(M=>M.id===d.id),p=S(c,g),x=S(s,g),y=x/o;p<y&&(r.push(b),n.push({type:"prune",pointId:b,prunedBy:d.id,distUV:p,distPV:x,threshold:y}))}for(const b of r)a.delete(b)}return{edges:i,steps:n}}function Et(s,e){const o={};for(const u of s){const a=s.filter(n=>n.id!==u.id),{edges:i}=Nt(u,a,e);o[u.id]=i}return o}function kt(s,e,o,u){const a=[];let i=u;for(let n=0;n<e.length;n++){const d=e.find(x=>x.id===i),r=S(d,o),g=(s[i]||[]).map(x=>{const y=e.find(M=>M.id===x);return{id:x,distToQ:S(y,o)}}).sort((x,y)=>x.distToQ-y.distToQ),c=g[0],p=c&&c.distToQ<r?c.id:-1;if(a.push({from:i,neighbors:g,bestNeighbor:p,currentDistToQ:r}),p===-1)break;i=p}return a}function Lt(s){const e=[];for(const[o,u]of s)e.push([o,u],[u,o]);return e}const ot=Lt([[1,2],[1,3],[1,5],[1,6],[1,7],[1,10],[2,3],[2,4],[2,7],[2,8],[3,4],[3,7],[3,9],[4,8],[5,6],[5,7],[5,10],[6,7],[6,9],[6,10],[6,11],[7,8],[7,9],[7,10],[8,9],[8,14],[9,10],[9,11],[9,12],[10,11],[11,12],[11,13],[12,13],[12,14],[13,14]]),It="http://www.w3.org/2000/svg";function tt(s,e){return s*e}function et(s,e){return s*e}function lt(){const e=document.querySelector("#graph-svg").getBoundingClientRect();return{w:e.width,h:e.height}}function rt(){const s=document.getElementById("graph-svg");s.innerHTML=""}function v(s,e={},o){const u=document.createElementNS(It,s);for(const[a,i]of Object.entries(e))u.setAttribute(a,String(i));return o&&o.appendChild(u),u}function dt(s){const e=v("defs",{},s),o={arrow:"rgba(148,163,184,0.5)","arrow-green":"#34d399","arrow-yellow":"#fbbf24","arrow-red":"#f87171","arrow-accent":"#818cf8"};for(const[i,n]of Object.entries(o)){const d=v("marker",{id:i,markerWidth:8,markerHeight:6,refX:8,refY:3,orient:"auto",markerUnits:"userSpaceOnUse"},e);v("polygon",{points:"0 0, 8 3, 0 6",fill:n},d)}const u=v("filter",{id:"glow",x:"-50%",y:"-50%",width:"200%",height:"200%"},e);v("feGaussianBlur",{stdDeviation:"8",result:"blur"},u);const a=v("feMerge",{},u);v("feMergeNode",{in:"blur"},a),v("feMergeNode",{in:"SourceGraphic"},a)}function ct(s,e,o){const u=v("g",{class:"grid"},s),a=50;for(let i=a;i<e;i+=a)v("line",{x1:i,y1:0,x2:i,y2:o,class:"grid-line"},u);for(let i=a;i<o;i+=a)v("line",{x1:0,y1:i,x2:e,y2:i,class:"grid-line"},u)}function _(s,e,o,u,a={}){var p,x;const i=tt(e.x,o),n=et(e.y,u),d=a.radius??10,r=v("g",{"data-id":e.id},s);r.style.opacity=a.dimmed?"0.3":"1",a.pulse&&v("circle",{cx:i,cy:n,r:d*2,fill:e.color,class:"pulse-ring"},r),a.glow&&v("circle",{cx:i,cy:n,r:d*2.2,fill:e.color,opacity:.15,filter:"url(#glow)"},r);const b=v("circle",{cx:i,cy:n,r:d,fill:e.color,stroke:"white","stroke-width":1.5,class:`graph-point${a.draggable?" draggable":""}`},r);b.dataset.id=String(e.id),a.crossed&&(v("line",{x1:i-7,y1:n-7,x2:i+7,y2:n+7,stroke:"#f87171","stroke-width":3,"stroke-linecap":"round"},r),v("line",{x1:i+7,y1:n-7,x2:i-7,y2:n+7,stroke:"#f87171","stroke-width":3,"stroke-linecap":"round"},r));const g=((p=a.labelOffset)==null?void 0:p.dx)??0,c=((x=a.labelOffset)==null?void 0:x.dy)??-18;return v("text",{x:i+g,y:n+c,class:"point-label"},r).textContent=e.label,r}function it(s,e,o,u,a,i={}){const n=tt(e.x,u),d=et(e.y,a),r=tt(o.x,u),b=et(o.y,a),g=Math.atan2(b-d,r-n),c=14,p={x1:n+Math.cos(g)*c,y1:d+Math.sin(g)*c,x2:r-Math.cos(g)*c,y2:b-Math.sin(g)*c,stroke:i.color??"rgba(148,163,184,0.35)","stroke-width":i.width??1.5,"marker-end":`url(#${i.marker??"arrow"})`,class:`edge-line ${i.className??""}`,opacity:i.opacity??1};return i.dashed&&(p["stroke-dasharray"]="6 4"),v("line",p,s)}function V(s,e,o,u,a,i={}){const n=tt(e.x,u),d=et(e.y,a),r=tt(o.x,u),b=et(o.y,a),g=(n+r)/2,c=(d+b)/2,p=i.color??"#94a3b8",x=i.label??String(Math.round(S(e,o)*1e3)),y=v("g",{},s);v("line",{x1:n,y1:d,x2:r,y2:b,stroke:p,"stroke-width":1.5,"stroke-dasharray":"6 4",opacity:.5,class:"distance-line"},y),v("rect",{x:g-22,y:c-10,width:44,height:20,rx:4,fill:"rgba(10,10,26,0.85)",stroke:p,"stroke-width":1},y);const M=v("text",{x:g,y:c+4,"text-anchor":"middle",fill:p,"font-size":11,"font-weight":"bold","font-family":"'SF Mono', monospace"},y);return M.textContent=x,y}function xt(s,e,o,u,a,i={}){const n=tt(e.x,u),d=et(e.y,a),r=o*(u+a)/2,b=i.color??"#fbbf24",g=v("g",{},s);v("circle",{cx:n,cy:d,r,fill:b,opacity:i.fillOpacity??.06},g);const c={cx:n,cy:d,r,fill:"none",stroke:b,"stroke-width":2,opacity:.5};return i.dashed!==!1&&(c["stroke-dasharray"]="8 4"),v("circle",c,g),g}function mt(s,e,o){const u=s.querySelectorAll(`[data-id="${e.id}"]`);let a=!1;const i=r=>{r.preventDefault(),a=!0},n=r=>{if(!a)return;const b=s.getBoundingClientRect(),g=(r.clientX-b.left)/b.width,c=(r.clientY-b.top)/b.height;o(Math.max(.05,Math.min(.95,g)),Math.max(.05,Math.min(.95,c)))},d=()=>{a=!1};u.forEach(r=>{r.addEventListener("mousedown",i),r.addEventListener("touchstart",i,{passive:!1})}),s.addEventListener("mousemove",n),s.addEventListener("mouseup",d),s.addEventListener("mouseleave",d),s.addEventListener("touchmove",r=>{if(!a)return;r.preventDefault();const b=r.touches[0],g=s.getBoundingClientRect(),c=(b.clientX-g.left)/g.width,p=(b.clientY-g.top)/g.height;o(Math.max(.05,Math.min(.95,c)),Math.max(.05,Math.min(.95,p)))},{passive:!1}),s.addEventListener("touchend",d)}function pt(s){document.getElementById("panel").innerHTML=s}function ut(s){document.getElementById("controls").innerHTML=s}let G={...at},X=2;function qt(){yt()}function yt(){var g;const s=document.querySelector("#graph-svg");rt();const{w:e,h:o}=lt();dt(s),ct(s,e,o),v("g",{},s);const u=v("g",{},s),a=v("g",{},s),i=k.map(c=>({pt:c,d:S(G,c)})).sort((c,p)=>c.d-p.d),n=i[0].d,d=i[0].pt,r=n*(1+X);xt(u,G,r,e,o,{color:"#fbbf24",fillOpacity:.04}),xt(u,G,n,e,o,{color:"#34d399",fillOpacity:.03});for(const{pt:c,d:p}of i){const x=c.id===d.id;V(u,G,c,e,o,{color:x?"#34d399":"#64748b",label:String(Math.round(p*1e3))})}for(const c of k){const p=c.id===d.id;S(G,c)<=r,_(a,c,e,o,{glow:p,pulse:p,radius:p?12:10})}_(a,G,e,o,{glow:!0,draggable:!0,radius:14,labelOffset:{dx:0,dy:-22}}),mt(s,G,(c,p)=>{G={...G,x:c,y:p},yt()});const b=i.filter(c=>c.d<=r);pt(`
+    <div class="panel-section">
+      <div class="panel-title">Metric Space (M, D)</div>
+      <div class="panel-text">
+        <div><span class="accent">M</span>: Set of points</div>
+        <div><span class="accent">D</span>: Distance function (Euclidean distance)</div>
+        <div class="formula">
+          D(p₁,p₂) = √((x₁-x₂)² + (y₁-y₂)²)
+        </div>
+        <div class="dim" style="margin-top:8px">Properties of distance function:</div>
+        <div class="dim">① D(p₁,p₂) = 0 ⟺ p₁ = p₂</div>
+        <div class="dim">② D(p₁,p₂) = D(p₂,p₁)</div>
+        <div class="dim">③ D(p₁,p₂) ≤ D(p₁,p₃) + D(p₂,p₃)</div>
+      </div>
+    </div>
+
+    <div class="panel-section">
+      <div class="panel-title" style="color:#34d399">Nearest Neighbor (NN)</div>
+      <div class="panel-text">
+        <div>p* ∈ P is the <span class="green">NN</span> of q:</div>
+        <div class="formula">D(p*, q) ≤ D(p, q)  ∀p ∈ P</div>
+        <div class="green" style="margin-top:6px">→ NN = ${d.label} (D = ${Math.round(n*1e3)})</div>
+      </div>
+    </div>
+
+    <div class="panel-section">
+      <div class="panel-title" style="color:#fbbf24">(1+ε)-Approximate NN</div>
+      <div class="panel-text">
+        <div>p ∈ P is a <span class="yellow">(1+ε)-ANN</span> of q:</div>
+        <div class="formula">D(p, q) ≤ (1+ε) · D(p*, q)</div>
+        <div class="dim" style="margin-top:6px">
+          ε = ${X} → radius = (1+${X}) · ${Math.round(n*1e3)} = ${Math.round(r*1e3)}
+        </div>
+        <div class="yellow" style="margin-top:4px">
+          ANN candidates: ${b.map(c=>c.pt.label).join(", ")} (${b.length})
+        </div>
+      </div>
+    </div>
+
+    <div class="panel-section">
+      <div class="panel-title dim" style="font-size:12px">D(q, p) distance ranking</div>
+      <div class="step-list">
+        ${i.map((c,p)=>`
+          <div class="step-item ${p===0?"active":""}">
+            <div class="step-dot" style="background:${c.pt.color}"></div>
+            <span>D(q, ${c.pt.label}) = ${Math.round(c.d*1e3)}</span>
+            ${p===0?'<span class="green" style="margin-left:auto">← NN</span>':""}
+          </div>
+        `).join("")}
+      </div>
+    </div>
+  `),ut(`
+    <span class="status-text">
+      Drag <strong style="color:#fbbf24">q</strong> to move |
+      ε =
+    </span>
+    <input type="range" min="0.5" max="5" step="0.5" value="${X}"
+      style="width:100px;accent-color:#818cf8" id="eps-slider" />
+    <span class="status-text"><strong>${X}</strong></span>
+    <span class="status-text" style="margin-left:auto">
+      <span style="color:#34d399">●</span> NN radius &nbsp;
+      <span style="color:#fbbf24">●</span> (1+ε)-ANN radius
+    </span>
+  `),(g=document.getElementById("eps-slider"))==null||g.addEventListener("input",c=>{X=parseFloat(c.target.value),yt()})}function Pt(){yt()}function zt(){}const Tt=Object.freeze(Object.defineProperty({__proto__:null,mount:qt,resize:Pt,unmount:zt},Symbol.toStringTag,{value:"Module"}));let E=0,K=13,A={...at};function At(){const s=[];let e=K;for(let o=0;o<k.length;o++){const u=m(e),a=S(u,A),n=ot.filter(([d])=>d===e).map(([,d])=>({id:d,d:S(m(d),A)})).sort((d,r)=>d.d-r.d)[0];if(!n||n.d>=a)break;s.push({from:e,to:n.id,distFrom:a,distTo:n.d}),e=n.id}return s}function Ot(){E=0,J()}function J(){var q,z;const s=document.querySelector("#graph-svg");rt();const{w:e,h:o}=lt();dt(s),ct(s,e,o);const u=v("g",{},s),a=v("g",{},s),i=v("g",{},s),n=At(),d=n.length+1,r=Math.max(0,E-1);let b=K;const g=[K];for(let h=0;h<Math.min(r,n.length);h++)b=n[h].to,g.push(b);const c=E>0&&r>=n.length;for(const[h,D]of ot){const t=m(h),l=m(D),f=E>0&&n.some((L,F)=>F<r&&L.from===h&&L.to===D),$=E>0&&h===b,w=E>0&&!c&&r<n.length&&h===b&&D===n[r].to;it(u,t,l,e,o,{color:f?"#34d399":w?"#fbbf24":$?"rgba(148,163,184,0.5)":void 0,width:f?3:w?2.5:$?2:1.5,marker:f?"arrow-green":w?"arrow-yellow":"arrow"})}if(_(i,A,e,o,{glow:!0,radius:14,draggable:E===0}),E===0&&mt(s,A,(h,D)=>{A={...A,x:h,y:D},J()}),E>0){const h=m(b);V(a,h,A,e,o,{color:c?"#34d399":"#fbbf24",label:String(Math.round(S(h,A)*1e3))})}for(const h of k){const D=E>0&&h.id===b;_(i,h,e,o,{glow:D||E===0&&h.id===K,pulse:D,radius:D?13:10})}const p=m(b),x=S(p,A);let y=`
+    <div class="panel-section">
+      <div class="panel-title">Proximity Graph (PG)</div>
+      <div class="panel-text">
+        <div>Each data point = a vertex of the graph</div>
+        <div style="margin-top:6px">
+          (1+ε)-PG: For any q and starting point p<sub>start</sub>,
+          <span class="green">greedy search always returns a (1+ε)-ANN</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel-section">
+      <div class="panel-title">Greedy Algorithm</div>
+      <div class="formula" style="font-style:normal;font-family:'SF Mono',monospace;font-size:12px;line-height:1.9">
+        <span class="green">greedy</span>(p<sub>start</sub>, q):<br>
+        &nbsp;&nbsp;p° ← p<sub>start</sub><br>
+        &nbsp;&nbsp;<span class="accent">repeat:</span><br>
+        &nbsp;&nbsp;&nbsp;&nbsp;p⁺ ← closest to q among<br>
+        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;out-neighbors of p°<br>
+        &nbsp;&nbsp;&nbsp;&nbsp;<span class="yellow">if</span> p⁺=nil <span class="yellow">or</span> D(p°,q) ≤ D(p⁺,q):<br>
+        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="green">return</span> p°<br>
+        &nbsp;&nbsp;&nbsp;&nbsp;p° ← p⁺
+      </div>
+    </div>
+  `;if(E>0){y+=`
+      <div class="panel-section">
+        <div class="panel-title" style="color:#fbbf24">Search Path</div>
+        <div class="step-list">
+    `;for(let l=0;l<g.length;l++){const f=m(g[l]),$=S(f,A),w=l===g.length-1;y+=`
+        <div class="step-item ${w?"active":"done"}">
+          <div class="step-dot" style="background:${f.color}"></div>
+          <span>${f.label} (D=${Math.round($*1e3)})</span>
+          ${c&&w?'<span class="green" style="margin-left:auto">✔ Returned!</span>':""}
+          ${w?"":'<span class="yellow" style="margin-left:auto">→</span>'}
+        </div>
+      `}y+="</div></div>";const h=ot.filter(([l])=>l===b).map(([,l])=>{const f=m(l);return{pt:f,d:S(f,A)}}).sort((l,f)=>l.d-f.d),D=h[0],t=D&&D.d<x;y+=`
+      <div class="panel-section">
+        <div class="panel-title dim" style="font-size:12px">
+          Out-neighbors of ${p.label}
+          <span class="dim" style="font-weight:400"> (D(${p.label}, q) = ${Math.round(x*1e3)})</span>
+        </div>
+        <div class="step-list">
+          ${h.map((l,f)=>{const $=Math.round(l.d*1e3),w=l.d<x,L=f===0&&w;return`
+              <div class="step-item ${L?"active":""}">
+                <div class="step-dot" style="background:${l.pt.color}"></div>
+                <span>D(${l.pt.label}, q) = ${$}</span>
+                <span style="margin-left:auto;color:${w?"#34d399":"#f87171"};font-size:11px">
+                  ${$} ${w?"<":"≥"} ${Math.round(x*1e3)}
+                  ${w?"✔":""}
+                </span>
+                ${L?'<span class="green" style="font-size:10px;font-weight:700">BEST</span>':""}
+              </div>
+            `}).join("")}
+        </div>
+        <div style="margin-top:8px;font-size:12px">
+          ${t?`<span class="yellow">→ Move to ${D.pt.label}! (D: ${Math.round(x*1e3)} → ${Math.round(D.d*1e3)})</span>`:`<span class="green" style="font-weight:700">✔ No closer neighbor → return ${p.label}!</span>`}
+        </div>
+      </div>
+    `}pt(y);const M=E>0?E<d:!0;ut(`
+    <span class="status-text">Start:</span>
+    ${k.map(h=>`
+      <button class="btn ${h.id===K?"btn-primary":""}"
+        style="padding:4px 10px;font-size:11px" data-start="${h.id}">
+        ${h.label}
+      </button>
+    `).join("")}
+    <span style="flex:1"></span>
+    ${E===0?'<span class="status-text">Drag <strong style="color:#fbbf24">q</strong> to move</span>':""}
+    <button class="btn" id="btn-reset" ${E===0?"disabled":""}>Reset</button>
+    <button class="btn btn-primary" id="btn-next" ${M?"":"disabled"}>
+      ${E===0?"Start Search":M?"Next Hop →":"Done!"}
+    </button>
+  `),(q=document.getElementById("btn-next"))==null||q.addEventListener("click",()=>{M&&(E++,J())}),(z=document.getElementById("btn-reset"))==null||z.addEventListener("click",()=>{E=0,J()}),document.querySelectorAll("[data-start]").forEach(h=>{h.addEventListener("click",()=>{K=parseInt(h.dataset.start),E=0,J()})})}function Bt(){J()}function Ct(){}const jt=Object.freeze(Object.defineProperty({__proto__:null,mount:Ot,resize:Bt,unmount:Ct},Symbol.toStringTag,{value:"Module"}));let O={...at},st=1,Y=1;function Gt(){nt()}function nt(){var D;const s=document.querySelector("#graph-svg");rt();const{w:e,h:o}=lt();dt(s),ct(s,e,o);const u=v("g",{},s),a=v("g",{},s),i=v("g",{},s),n=m(st),d=S(n,O),r=k.map(t=>({pt:t,d:S(t,O)})).sort((t,l)=>t.d-l.d),b=r[0].d,g=r[0].pt,c=(1+Y)*b,p=d<=c,x=ot.filter(([t])=>t===st).map(([,t])=>({pt:m(t),d:S(m(t),O)})).sort((t,l)=>t.d-l.d),y=x.find(t=>t.d<d),M=p||!!y;for(const[t,l]of ot){const f=m(t),$=m(l),w=t===st,L=w&&y&&l===y.pt.id;it(u,f,$,e,o,{color:L?"#34d399":w?"rgba(129,140,248,0.6)":void 0,width:L?3:w?2:1.5,marker:L?"arrow-green":w?"arrow-accent":"arrow"})}xt(a,O,c,e,o,{color:p?"#34d399":"#fbbf24",dashed:!0,fillOpacity:.03}),V(a,n,O,e,o,{color:p?"#34d399":"#fbbf24",label:String(Math.round(d*1e3))}),y&&!p&&V(a,y.pt,O,e,o,{color:"#34d399",label:String(Math.round(y.d*1e3))}),_(i,O,e,o,{glow:!0,draggable:!0,radius:14}),mt(s,O,(t,l)=>{O={...O,x:t,y:l},nt()});for(const t of k){const l=t.id===st,f=y&&t.id===y.pt.id;t.id,g.id,_(i,t,e,o,{glow:l||f,pulse:l,radius:l?13:10});const $=s.querySelector(`g[data-id="${t.id}"]`);$==null||$.addEventListener("click",()=>{st=t.id,nt()})}const q=Math.round(d*1e3),z=Math.round(b*1e3),h=Math.round(c*1e3);pt(`
+    <div class="panel-section">
+      <div class="panel-title">Navigability Definition</div>
+      <div class="panel-text">
+        G is <span class="green">(1+ε)-navigable</span> if for every p ∈ P and q ∈ M:
+        <div class="formula">
+          ① p is a (1+ε)-ANN of q, or<br>
+          ② p has an out-neighbor p<sub>out</sub> with<br>
+          &nbsp;&nbsp;&nbsp;D(p<sub>out</sub>, q) < D(p, q)
+        </div>
+      </div>
+    </div>
+
+    <div class="panel-section" style="border-color:${M?"#34d39940":"#f8717140"}">
+      <div class="panel-title" style="color:${M?"#34d399":"#f87171"}">
+        Verify: ${n.label} (ε = ${Y})
+      </div>
+      <div class="panel-text">
+
+        <div style="font-size:12px;color:var(--text-dim);margin-bottom:6px">Step 1: Check condition ①</div>
+        <div class="formula" style="font-size:12px;line-height:1.8">
+          NN of q = ${g.label} &nbsp;→&nbsp; D(${g.label}, q) = ${z}<br>
+          (1+ε) · D(NN, q) = (1+${Y}) · ${z} = <strong>${h}</strong><br>
+          D(${n.label}, q) = <strong>${q}</strong><br>
+          ${q} ${q<=h?"≤":">"} ${h}
+          → <span style="color:${p?"#34d399":"#f87171"}">${p?`${n.label} IS a (1+ε)-ANN ✔`:`${n.label} is NOT a (1+ε)-ANN`}</span>
+        </div>
+
+        ${p?"":`
+          <div style="font-size:12px;color:var(--text-dim);margin-top:12px;margin-bottom:6px">Step 2: Check condition ②</div>
+          <div style="font-size:12px;margin-bottom:4px">
+            Need: out-neighbor p<sub>out</sub> with D(p<sub>out</sub>, q) < D(${n.label}, q) = ${q}
+          </div>
+          <div class="step-list" style="margin-top:4px">
+            ${x.map(t=>{const l=Math.round(t.d*1e3),f=t.d<d;return`
+                <div class="step-item">
+                  <div class="step-dot" style="background:${t.pt.color}"></div>
+                  <span style="font-size:12px">D(${t.pt.label}, q) = ${l}</span>
+                  <span style="margin-left:auto;font-size:11px;color:${f?"#34d399":"#f87171"}">
+                    ${l} ${f?"<":"≥"} ${q} ${f?"✔":""}
+                  </span>
+                </div>
+              `}).join("")}
+          </div>
+          <div style="margin-top:8px">
+            ${y?`<span class="green">✔ ${y.pt.label} is closer (D=${Math.round(y.d*1e3)}) → condition ② satisfied</span>`:'<span class="red">✗ No closer neighbor found!</span>'}
+          </div>
+        `}
+
+        <div style="margin-top:12px;padding:8px 12px;border-radius:6px;background:${M?"rgba(52,211,153,0.1)":"rgba(248,113,113,0.1)"};border:1px solid ${M?"#34d39930":"#f8717130"}">
+          <strong style="color:${M?"#34d399":"#f87171"}">
+            ${M?`✔ ${n.label} satisfies navigability (via condition ${p?"①":"②"})`:`✗ ${n.label} violates navigability!`}
+          </strong>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel-section">
+      <div class="panel-title" style="color:var(--accent)">Lemma 2.1</div>
+      <div class="panel-text">
+        <div class="formula">
+          G is (1+ε)-PG &nbsp;⟺&nbsp; G is (1+ε)-navigable
+        </div>
+        <div class="dim" style="margin-top:8px;font-size:12px">
+          If navigability holds for <em>every</em> point p and <em>every</em> query q,
+          then greedy search always returns a (1+ε)-ANN.
+        </div>
+      </div>
+    </div>
+  `),ut(`
+    <span class="status-text">Click a point to verify | Drag <strong style="color:#fbbf24">q</strong> to move</span>
+    <span style="flex:1"></span>
+    <span class="status-text">ε =</span>
+    <input type="range" min="0.5" max="5" step="0.5" value="${Y}"
+      style="width:100px;accent-color:#818cf8" id="eps-slider" />
+    <span class="status-text"><strong>${Y}</strong></span>
+    <span style="flex:1"></span>
+    <span class="status-text">
+      Selected: <strong style="color:${n.color}">${n.label}</strong>
+    </span>
+  `),(D=document.getElementById("eps-slider"))==null||D.addEventListener("input",t=>{Y=parseFloat(t.target.value),nt()})}function _t(){nt()}function Ft(){}const Ht=Object.freeze(Object.defineProperty({__proto__:null,mount:Gt,resize:_t,unmount:Ft},Symbol.toStringTag,{value:"Module"}));let Q=1,P=-1,B=[];function Mt(){const s=m(Q),e=k.filter(u=>u.id!==Q);B=Nt(s,e,U).steps}function Rt(){P=-1,Mt(),W()}function W(){var z,h,D;const s=document.querySelector("#graph-svg");rt();const{w:e,h:o}=lt();dt(s),ct(s,e,o);const u=v("g",{},s),a=v("g",{},s),i=v("g",{},s),n=m(Q),d=k.filter(t=>t.id!==Q),r=B.slice(0,P+1),b=new Set,g=new Set,c=r.findLast(t=>t.type==="select"),p=r.length>0&&r[r.length-1].type==="prune"?r[r.length-1]:null;for(const t of r)t.type==="select"&&b.add(t.pointId),t.type==="prune"&&g.add(t.pointId);const x=d.map(t=>({pt:t,d:S(n,t)})).sort((t,l)=>t.d-l.d);if(P>=0)for(const{pt:t,d:l}of x)(!g.has(t.id)||(p==null?void 0:p.pointId)===t.id)&&V(a,n,t,e,o,{color:g.has(t.id)?"#f87171":"#475569",label:String(Math.round(l*1e3))});if(p){const t=m(p.prunedBy),l=m(p.pointId);V(a,t,l,e,o,{color:"#f87171",label:String(Math.round(p.distUV*1e3))})}for(const t of b){const l=m(t);it(u,n,l,e,o,{color:"#34d399",width:2.5,marker:"arrow-green"})}if(P>=B.length-1){for(const t of B)if(t.type==="prune"&&t.prunedBy){const l=m(t.prunedBy),f=m(t.pointId);it(u,l,f,e,o,{color:"#818cf8",width:1.5,marker:"arrow-accent",dashed:!0,opacity:.6})}}for(const t of k){const l=t.id===Q,f=g.has(t.id),$=(c==null?void 0:c.pointId)===t.id,w=(p==null?void 0:p.pointId)===t.id;_(i,t,e,o,{glow:l||$,pulse:l,dimmed:f&&!w,crossed:f,radius:l?13:10})}let y=`
+    <div class="panel-section">
+      <div class="panel-title">DiskANN Parameters</div>
+      <div class="panel-text">
+        <div class="formula">
+          α = 1 + 4/ε = 1 + 4/${St} = <span class="yellow">${U}</span>
+        </div>
+        <div class="dim">Pruning condition: D(u,v) < (1/α) · D(p,v) = ${(1/U).toFixed(1)} · D(p,v)</div>
+      </div>
+    </div>
+
+    <div class="panel-section">
+      <div class="panel-title dim" style="font-size:12px">
+        Distance from ${n.label} to each point (ascending)
+      </div>
+      <div class="step-list">
+        ${x.map(({pt:t,d:l})=>{const f=g.has(t.id),$=b.has(t.id);return`
+            <div class="step-item ${(c==null?void 0:c.pointId)===t.id||(p==null?void 0:p.pointId)===t.id?"active":""} ${f?"pruned":""}">
+              <div class="step-dot" style="background:${t.color};${f?"opacity:0.3":""}"></div>
+              <span>${t.label}: D = ${Math.round(l*1e3)}</span>
+              ${f?'<span class="red" style="margin-left:auto;text-decoration:none">pruned</span>':""}
+              ${$&&!f?'<span class="green" style="margin-left:auto">edge ✔</span>':""}
+            </div>
+          `}).join("")}
+      </div>
+    </div>
+  `;if(c||p){const t=r[r.length-1];if(t.type==="select"){const l=m(t.pointId);y+=`
+        <div class="panel-section" style="border-color:#34d39940">
+          <div class="panel-title" style="color:#34d399">Edge Created</div>
+          <div class="panel-text">
+            u = <span style="color:${l.color};font-weight:700">${l.label}</span>
+            (D = ${Math.round(t.distToCenter*1e3)})
+            <div class="green" style="margin-top:4px">
+              → Edge ${n.label} → ${l.label} created
+            </div>
+          </div>
+        </div>
+      `}else if(t.type==="prune"){const l=m(t.pointId),f=m(t.prunedBy);y+=`
+        <div class="panel-section" style="border-color:#f8717140">
+          <div class="panel-title" style="color:#f87171">Pruning</div>
+          <div class="panel-text">
+            <div class="formula" style="font-size:12px">
+              D(${f.label}, ${l.label}) = ${Math.round(t.distUV*1e3)}<br>
+              < ${(1/U).toFixed(1)} · D(${n.label}, ${l.label})<br>
+              = ${(1/U).toFixed(1)} · ${Math.round(t.distPV*1e3)}<br>
+              = ${Math.round(t.threshold*1e3)}
+            </div>
+            <div class="red" style="margin-top:6px">
+              ${Math.round(t.distUV*1e3)} < ${Math.round(t.threshold*1e3)} ✔ → ${l.label} pruned!
+            </div>
+          </div>
+        </div>
+      `}}P>=B.length-1&&B.length>0&&(y+=`
+      <div class="panel-section" style="border-color:#34d39940">
+        <div class="panel-title" style="color:#34d399">Shortcut Property</div>
+        <div class="panel-text">
+          For all v ∈ P \\ {${n.label}}:
+          <div class="formula" style="font-size:12px">
+            ① v is an out-neighbor of ${n.label}, or<br>
+            ② there exists an out-neighbor u of ${n.label} such that<br>
+            &nbsp;&nbsp;&nbsp;D(u,v) < (1/α)·D(${n.label},v)
+          </div>
+          <div class="dim" style="margin-top:6px">
+            Even without a direct edge, reachable via out-neighbors!
+          </div>
+          <div class="dim" style="margin-top:4px">
+            <span style="color:#818cf8">- - →</span> dashed line = shortcut path
+          </div>
+        </div>
+      </div>
+    `),pt(y);const M=P<B.length-1,q=P>=0;ut(`
+    <span class="status-text">Center:</span>
+    ${k.map(t=>`
+      <button class="btn ${t.id===Q?"btn-primary":""}"
+        style="padding:4px 10px;font-size:11px" data-center="${t.id}">
+        ${t.label}
+      </button>
+    `).join("")}
+    <span style="flex:1"></span>
+    <span class="status-text">
+      Step ${Math.max(0,P+1)}/${B.length}
+    </span>
+    <button class="btn" id="btn-prev" ${q?"":"disabled"}>← Prev</button>
+    <button class="btn btn-primary" id="btn-next" ${M?"":"disabled"}>
+      ${P<0?"Start":M?"Next →":"Done!"}
+    </button>
+    <button class="btn" id="btn-all" ${P>=B.length-1?"disabled":""}>Show All</button>
+  `),(z=document.getElementById("btn-next"))==null||z.addEventListener("click",()=>{M&&(P++,W())}),(h=document.getElementById("btn-prev"))==null||h.addEventListener("click",()=>{q&&(P--,W())}),(D=document.getElementById("btn-all"))==null||D.addEventListener("click",()=>{P=B.length-1,W()}),document.querySelectorAll("[data-center]").forEach(t=>{t.addEventListener("click",()=>{Q=parseInt(t.dataset.center),P=-1,Mt(),W()})})}function Qt(){W()}function Ut(){}const Vt=Object.freeze(Object.defineProperty({__proto__:null,mount:Rt,resize:Qt,unmount:Ut},Symbol.toStringTag,{value:"Module"}));let C={...at},R=13,N=-1,ht={},I=[],Z=null;function gt(){ht=Et(k,U),I=kt(ht,k,C,R)}function Xt(){N=-1,gt(),T()}function T(){var x,y,M,q,z,h,D;const s=document.querySelector("#graph-svg");rt();const{w:e,h:o}=lt();dt(s),ct(s,e,o);const u=v("g",{},s);v("g",{},s);const a=v("g",{},s),i=v("g",{},s);let n=R;const d=[R];for(let t=0;t<Math.min(N+1,I.length);t++)I[t].bestNeighbor!==-1&&(n=I[t].bestNeighbor,d.push(n));const r=N>=0&&(N>=I.length-1||((x=I[Math.min(N,I.length-1)])==null?void 0:x.bestNeighbor)===-1);for(const[t,l]of Object.entries(ht)){const f=parseInt(t),$=m(f);for(const w of l){const L=m(w),F=N>=0&&f===n&&!r,$t=N>=0&&!r&&((y=I[Math.min(N,I.length-1)])==null?void 0:y.bestNeighbor)===w&&f===n,ft=d.length>=2&&d.some((Dt,wt)=>wt<d.length-1&&Dt===f&&d[wt+1]===w);it(u,$,L,e,o,{color:ft?"#34d399":$t?"#fbbf24":F?"rgba(148,163,184,0.5)":void 0,width:ft?3:$t?2.5:F?1.8:1.2,marker:ft?"arrow-green":$t?"arrow-yellow":"arrow",opacity:N>=0&&!F&&!ft?.3:1})}}if(N>=0){const t=m(n);V(a,t,C,e,o,{color:r?"#34d399":"#fbbf24",label:String(Math.round(S(t,C)*1e3))})}_(i,C,e,o,{glow:!0,draggable:N<0,radius:14}),N<0&&mt(s,C,(t,l)=>{C={...C,x:t,y:l},gt(),T()});for(const t of k){const l=N>=0&&t.id===n,f=t.id===R;if(_(i,t,e,o,{glow:l||N<0&&f,pulse:l,radius:l?13:r&&t.id===n?15:10}),N<0){const $=s.querySelector(`g[data-id="${t.id}"]`);$==null||$.addEventListener("click",()=>{R=t.id,gt(),T()})}}let b=`
+    <div class="panel-section">
+      <div class="panel-title">Greedy Search on DiskANN</div>
+      <div class="panel-text">
+        <div>Start: <span style="color:${m(R).color};font-weight:700">${m(R).label}</span></div>
+        <div>Goal: Find NN of <span class="yellow">q</span></div>
+  `;if(N>=0){const t=m(n);b+=`
+      <div style="margin-top:8px">
+        Current: <span style="color:${t.color};font-weight:700;font-size:16px">${t.label}</span>
+        <span class="dim"> (D = ${Math.round(S(t,C)*1e3)})</span>
+      </div>
+    `}b+="</div></div>";const g=Object.values(ht).reduce((t,l)=>t+l.length,0),c=k.length*(k.length-1);if(b+=`
+    <div class="panel-section">
+      <div class="panel-title dim" style="font-size:12px">DiskANN Graph Info</div>
+      <div class="panel-text dim" style="font-size:12px">
+        Total edges: ${g} (complete graph: ${c})<br>
+        α = ${U}, ε = 4
+      </div>
+    </div>
+  `,N>=0){const t=Math.min(N,I.length-1),l=I[t];b+=`
+      <div class="panel-section">
+        <div class="panel-title" style="color:#fbbf24">Search Path</div>
+        <div class="step-list">
+    `;for(let f=0;f<d.length;f++){const $=m(d[f]),w=S($,C),L=f===d.length-1,F=L&&r;b+=`
+        <div class="step-item ${L?"active":"done"}">
+          <div class="step-dot" style="background:${$.color}"></div>
+          <span>${$.label} (D=${Math.round(w*1e3)})</span>
+          ${F?'<span class="green" style="margin-left:auto">✔ Returned!</span>':""}
+          ${L?"":'<span class="yellow" style="margin-left:auto">→</span>'}
+        </div>
+      `}if(b+="</div></div>",l&&(b+=`
+        <div class="panel-section">
+          <div class="panel-title dim" style="font-size:12px">
+            Checking out-neighbors of ${m(l.from).label}
+          </div>
+          <div class="step-list">
+            ${l.neighbors.map(f=>{const $=f.distToQ<l.currentDistToQ,w=f.id===l.bestNeighbor;return`
+                <div class="step-item ${w?"active":""}">
+                  <div class="step-dot" style="background:${m(f.id).color}"></div>
+                  <span>D(${m(f.id).label}, q) = ${Math.round(f.distToQ*1e3)}</span>
+                  <span style="margin-left:auto;color:${$?"#34d399":"#f87171"}">
+                    ${$?"↓":"↑"}
+                  </span>
+                  ${w?'<span class="green" style="font-size:10px;font-weight:700">BEST</span>':""}
+                </div>
+              `}).join("")}
+          </div>
+          ${l.bestNeighbor!==-1?`
+            <div class="yellow" style="margin-top:8px;font-size:12px">
+              → Move to ${m(l.bestNeighbor).label}!
+              (D: ${Math.round(l.currentDistToQ*1e3)} → ${Math.round(l.neighbors.find(f=>f.id===l.bestNeighbor).distToQ*1e3)})
+            </div>
+          `:`
+            <div class="green" style="margin-top:8px;font-size:12px;font-weight:700">
+              ✔ No closer neighbor → return ${m(l.from).label}!
+            </div>
+          `}
+        </div>
+      `),r){const f=m(n),$=S(f,C);b+=`
+        <div class="panel-section" style="border-color:#34d39940;background:rgba(52,211,153,0.05)">
+          <div class="panel-title" style="color:#34d399">✔ NN Found!</div>
+          <div class="panel-text">
+            <div class="green" style="font-size:15px">${f.label} (D = ${Math.round($*1e3)})</div>
+            <div class="dim" style="margin-top:6px">
+              Found in ${d.length-1} hop(s)<br>
+              (visited ${d.length} of ${k.length} points)
+            </div>
+          </div>
+        </div>
+      `}}pt(b);const p=N<I.length-1;ut(`
+    ${N<0?`
+      <span class="status-text">
+        Click to select start point |
+        Drag <strong style="color:#fbbf24">q</strong> to move
+      </span>
+      <span style="flex:1"></span>
+      <button class="btn btn-primary" id="btn-start">Start Search</button>
+    `:`
+      <button class="btn" id="btn-reset">Reset</button>
+      <button class="btn" id="btn-prev" ${N<=0?"disabled":""}>← Prev</button>
+      <button class="btn btn-primary" id="btn-next" ${p?"":"disabled"}>
+        ${p?"Next Hop →":"Done!"}
+      </button>
+      <button class="btn" id="btn-auto">${Z?"⏸ Stop":"▶ Auto Play"}</button>
+      <span style="flex:1"></span>
+      <span class="status-text">
+        Hop ${Math.min(N+1,I.length)}/${I.length}
+      </span>
+    `}
+  `),(M=document.getElementById("btn-start"))==null||M.addEventListener("click",()=>{N=0,T()}),(q=document.getElementById("btn-next"))==null||q.addEventListener("click",()=>{p&&(N++,T())}),(z=document.getElementById("btn-prev"))==null||z.addEventListener("click",()=>{N>0&&(N--,T())}),(h=document.getElementById("btn-reset"))==null||h.addEventListener("click",()=>{vt(),N=-1,gt(),T()}),(D=document.getElementById("btn-auto"))==null||D.addEventListener("click",()=>{Z?(vt(),T()):(Z=setInterval(()=>{N<I.length-1?(N++,T()):(vt(),T())},1200),T())})}function vt(){Z&&(clearInterval(Z),Z=null)}function Yt(){vt()}const Kt=Object.freeze(Object.defineProperty({__proto__:null,mount:Xt,unmount:Yt},Symbol.toStringTag,{value:"Module"})),H=[{id:"metric",label:"1. Metric Space & NN",module:Tt},{id:"proximity",label:"2. Proximity Graph",module:jt},{id:"navigability",label:"3. Navigability",module:Ht},{id:"diskann",label:"4. DiskANN Build",module:Vt},{id:"greedy",label:"5. Greedy Demo",module:Kt}];let j=null;function bt(s){j&&j.module.unmount(),j=s,document.querySelectorAll(".tab").forEach(e=>{e.classList.toggle("active",e.getAttribute("data-id")===s.id)}),s.module.mount()}function Jt(){const s=document.getElementById("tabs");s.innerHTML=H.map(o=>`<div class="tab" data-id="${o.id}">${o.label}</div>`).join(""),s.querySelectorAll(".tab").forEach(o=>{o.addEventListener("click",()=>{const u=o.getAttribute("data-id"),a=H.find(i=>i.id===u);a&&bt(a)})});let e;window.addEventListener("resize",()=>{clearTimeout(e),e=setTimeout(()=>{j&&(j.module.resize?j.module.resize():j.module.mount())},150)}),window.addEventListener("keydown",o=>{const u=H.findIndex(a=>a.id===(j==null?void 0:j.id));o.key==="ArrowRight"&&u<H.length-1?bt(H[u+1]):o.key==="ArrowLeft"&&u>0&&bt(H[u-1])}),bt(H[0])}document.addEventListener("DOMContentLoaded",Jt);
+</script></body></html>

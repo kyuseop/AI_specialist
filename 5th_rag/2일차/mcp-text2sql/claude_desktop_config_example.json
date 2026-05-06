@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "text2sql": {
+      "command": "python3",
+      "args": ["/Users/본인아이디/Downloads/mcp-text2sql/server.py"],
+      "cwd": "/Users/본인아이디/Downloads/mcp-text2sql"
+    }
+  }
+}
